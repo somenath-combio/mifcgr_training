@@ -41,15 +41,30 @@ def setup_logging(log_file: str = "training.log"):
 
 def get_device():
     """
-    Get the best available device (GPU if available, else CPU).
+    Get the best available device (GPU if available and compatible, else CPU).
 
     Returns:
         torch.device
     """
     if torch.cuda.is_available():
-        device = torch.device('cuda')
-        logging.info(f"Using GPU: {torch.cuda.get_device_name(0)}")
-        logging.info(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f} GB")
+        # Check CUDA compute capability
+        device_props = torch.cuda.get_device_properties(0)
+        compute_capability = device_props.major + device_props.minor / 10.0
+
+        # PyTorch requires compute capability >= 7.0 for recent versions
+        min_compute_capability = 7.0
+
+        if compute_capability >= min_compute_capability:
+            device = torch.device('cuda')
+            logging.info(f"Using GPU: {torch.cuda.get_device_name(0)}")
+            logging.info(f"GPU Memory: {device_props.total_memory / 1e9:.2f} GB")
+            logging.info(f"CUDA Compute Capability: {compute_capability:.1f}")
+        else:
+            device = torch.device('cpu')
+            logging.warning(f"GPU {torch.cuda.get_device_name(0)} has compute capability {compute_capability:.1f}")
+            logging.warning(f"This PyTorch version requires compute capability >= {min_compute_capability}")
+            logging.warning("Falling back to CPU")
+            logging.info("Using CPU")
     else:
         device = torch.device('cpu')
         logging.info("Using CPU")
