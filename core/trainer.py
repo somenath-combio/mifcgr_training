@@ -55,9 +55,9 @@ class Trainer:
         Path(checkpoint_path).parent.mkdir(parents=True, exist_ok=True)
         Path(results_dir).mkdir(parents=True, exist_ok=True)
 
-        # Initialize utilities
-        self.early_stopping = EarlyStopping(patience=patience, mode='min')
-        self.model_checkpoint = ModelCheckpoint(filepath=checkpoint_path, mode='min')
+        # Initialize utilities (monitor validation accuracy)
+        self.early_stopping = EarlyStopping(patience=patience, mode='max')
+        self.model_checkpoint = ModelCheckpoint(filepath=checkpoint_path, mode='max')
         self.visualizer = TrainingVisualizer(save_dir=results_dir)
 
         # Training history
@@ -232,11 +232,12 @@ class Trainer:
                 val_acc=val_metrics.get('accuracy', 0)
             )
 
-            # Save best model
-            self.model_checkpoint(self.model, val_loss, epoch + 1, self.optimizer)
+            # Save best model based on validation accuracy
+            val_acc = val_metrics.get('accuracy', 0)
+            self.model_checkpoint(self.model, val_acc, epoch + 1, self.optimizer)
 
-            # Check early stopping
-            if self.early_stopping(val_loss, epoch + 1):
+            # Check early stopping based on validation accuracy
+            if self.early_stopping(val_acc, epoch + 1):
                 logging.info(f"\nEarly stopping triggered at epoch {epoch + 1}")
                 break
 
@@ -246,11 +247,12 @@ class Trainer:
         self.visualizer.plot_all(save=True)
         self.visualizer.save_history()
 
-        # Print best metrics
-        best_epoch = np.argmin(self.history['val_loss'])
+        # Print best metrics (based on validation accuracy)
+        val_accuracies = [m.get('accuracy', 0) for m in self.history['val_metrics']]
+        best_epoch = np.argmax(val_accuracies)
         logging.info(f"\nBest model at epoch {best_epoch + 1}:")
-        logging.info(f"Validation Loss: {self.history['val_loss'][best_epoch]:.4f}")
         logging.info(f"Validation Accuracy: {self.history['val_metrics'][best_epoch].get('accuracy', 0):.4f}")
+        logging.info(f"Validation Loss: {self.history['val_loss'][best_epoch]:.4f}")
         logging.info(f"Validation F1: {self.history['val_metrics'][best_epoch].get('f1', 0):.4f}")
         logging.info(f"Validation AUC: {self.history['val_metrics'][best_epoch].get('auc', 0):.4f}")
 
@@ -269,4 +271,4 @@ class Trainer:
         checkpoint = torch.load(checkpoint_path)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         logging.info(f"Loaded best model from {checkpoint_path}")
-        logging.info(f"Best validation score: {checkpoint['score']:.4f}")
+        logging.info(f"Best validation accuracy: {checkpoint['score']:.4f}")
