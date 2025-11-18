@@ -74,13 +74,13 @@ python main.py \
    - Optimizer: Adam (lr=0.003)
    - Dropout: 0.1
 5. **Monitoring**: Tracks metrics (accuracy, precision, recall, F1, AUC, MCC)
-6. **Early Stopping**: Stops training if validation loss doesn't improve
+6. **Early Stopping**: Stops training if validation accuracy doesn't improve
 7. **Visualization**: Saves training curves and metrics
 
 ## Output
 
 After training, you will find:
-- `checkpoints/best_model.pth`: Best model checkpoint
+- `checkpoints/best_model.pth`: Best model checkpoint (saved based on highest validation accuracy)
 - `results/training_progress.png`: Training and validation curves
 - `results/training_history.txt`: Detailed training history
 - `logs/training.log`: Complete training log
@@ -97,4 +97,6 @@ After training, you will find:
 - The model automatically selects GPU if available
 - Training uses gradient clipping to prevent exploding gradients
 - Learning rate scheduler reduces LR on validation loss plateau
+- Best model is saved based on highest validation accuracy
+- Early stopping monitors validation accuracy (not loss)
 - All results are saved automatically during training
